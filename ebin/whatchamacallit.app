@@ -1,8 +1,0 @@
-{application,whatchamacallit,
-             [{description,[]},
-              {vsn,"1"},
-              {registered,[]},
-              {applications,[kernel,stdlib]},
-              {mod,{whatchamacallit_app,[]}},
-              {env,[]},
-              {modules,[whatchamacallit_app,whatchamacallit_sup]}]}.
