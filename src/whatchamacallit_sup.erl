@@ -23,5 +23,12 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    SupFlags = #{strategy => one_for_one, intensity => 1, period => 5},
+    ChildSpecs = [#{id => w_server,
+                    start => {w_server, start, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker,
+                    modules => [w_server]}],
+    {ok, {SupFlags, ChildSpecs} }.
 
