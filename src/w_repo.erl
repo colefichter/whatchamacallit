@@ -56,26 +56,3 @@ get_controls_by_owner_pid(OwnerPid) ->
     end, Env),
     Controls = dict:fold(fun(_K,V,L) -> [V|L] end, [], ControlDict),
     Controls.
-
-% %------------------------------------------------------------------
-% % Unit Tests
-% %------------------------------------------------------------------
-
-% -include_lib("eunit/include/eunit.hrl").
-
-% set_get_control_test() ->
-%     ?assertEqual(error, get_control(5)),
-%     Control = #control{owner_pid=self(), id=5, type=button, wx_control={nothing_here}},
-%     ?assertEqual(ok, set_control(5, Control)),
-%     ?assertEqual({ok, Control}, get_control(5)).
-
-% set_get_wx_server_test() ->
-%     ?assertEqual(ok, set_wx_server(blah)),
-%     ?assertEqual(blah, get_wx_server()).
-
-% identity_test() ->
-%     ?assertError(badarith, next_id()), % ID not created yet.
-%     ?assertEqual(ok, create_identity()),
-%     ?assertEqual(1, next_id()),
-%     ?assertEqual(2, next_id()),
-%     ?assertEqual(3, next_id()).

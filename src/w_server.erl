@@ -441,29 +441,3 @@ remove_control(ControlId) ->
 
 get_controls_by_owner_pid(OwnerPid) ->
     (repo()):get_controls_by_owner_pid(OwnerPid).
-
-% %------------------------------------------------------------------
-% % Unit tests: Move these into a separate module
-% %------------------------------------------------------------------
-% -include_lib("eunit/include/eunit.hrl").
-
-% to_record_test() ->
-%     R1 = to_record({self(), nothing}, 999, textbox, not_a_real_wx_control),
-%     ?assertEqual(self(), owner_of(R1)),
-%     ?assertEqual(999, id_of(R1)),
-%     ?assertEqual(textbox, type_of(R1)),
-%     ?assertEqual(not_a_real_wx_control, wx_control_of(R1)),
-%     R2 = to_record({self(), nothing}, 1000, listbox, not_a_real_wx_control, "Some Text"),
-%     ?assertEqual(self(), owner_of(R2)),
-%     ?assertEqual(1000, id_of(R2)),
-%     ?assertEqual(listbox, type_of(R2)),
-%     ?assertEqual("Some Text", text_of(R2)),
-%     ?assertEqual(not_a_real_wx_control, wx_control_of(R2)).
-
-% simple_record_test() ->
-%     R = #control{id=999, type=button, owner_pid=self(), text="Fake Button", wx_control={test}},
-%     ?assertEqual(button, type_of(R)),
-%     ?assertEqual(999, id_of(R)),
-%     ?assertEqual(self(), owner_of(R)),
-%     ?assertEqual("Fake Button", text_of(R)),
-%     ?assertEqual({test}, wx_control_of(R)).
