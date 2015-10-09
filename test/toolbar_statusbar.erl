@@ -32,6 +32,4 @@ loop() ->
 
 all_test() ->
     w_server:start(),
-    start(),
-    timer:sleep(25),
-    w_server:stop().
+    start().
