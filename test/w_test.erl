@@ -14,6 +14,11 @@ to_wx_style_test() ->
     ?assertEqual({pos, {3,4}}, proplists:lookup(pos, Output)),
     ?assertEqual({style, ?wxTE_RIGHT bor ?wxTE_CENTER bor ?wxTE_LEFT bor ?wxTE_MULTILINE}, proplists:lookup(style, Output)).
 
+to_wx_style_password_test() ->
+    Input = [password],
+    Output = w:to_wx_style(Input),
+    ?assertEqual({style, ?wxTE_PASSWORD}, proplists:lookup(style, Output)).
+
 to_wx_flag_test() ->
     Input = [{value, "Cole"}, expand, top, bottom],
     Output = w:to_wx_flag(Input),

@@ -16,6 +16,7 @@
 -type toolbar_button_handle()   :: {button, integer(), string()}.
 -type label_handle()            :: {label, integer()}.
 -type textbox_handle()          :: {textbox, integer()}.
+-type password_handle()         :: {password, integer()}.
 -type listbox_handle()          :: {listbox, integer()}.
 -type combobox_handle()         :: {combobox, integer()}.
 -type sizer_handle()            :: {box_sizer, integer()}.
@@ -131,12 +132,16 @@ set_min_size({box_sizer, SizerId}, Width, Height) -> wx_object:call(?SERVER, {se
 % TODO: appending spacers and children should work more like filling the grid sizer. See form2 example where the buttons are added.
 append_child({box_sizer, ParentId}, {button, ChildId, _Text}) -> 
     append_child(ParentId, ChildId, []);
-append_child({box_sizer, ParentId}, {Type, ChildId}) when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox; Type == label; Type == listbox -> 
+append_child({box_sizer, ParentId}, {Type, ChildId}) 
+    when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox; Type == label; 
+         Type == listbox; Type == password -> 
     append_child(ParentId, ChildId, []).
 
 append_child({box_sizer, ParentId}, {button, ChildId, _Text}, Options) -> 
     append_child(ParentId, ChildId, Options);
-append_child({box_sizer, ParentId}, {Type, ChildId}, Options) when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox ->
+append_child({box_sizer, ParentId}, {Type, ChildId}, Options) 
+    when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox; Type == label; 
+         Type == listbox; Type == password -> 
     append_child(ParentId, ChildId, Options);
 append_child(ParentId, ChildId, Flags) when is_integer(ParentId), is_integer(ChildId) -> 
     Flags2 = to_wx_flag(Flags),
@@ -189,11 +194,14 @@ build_control(H = {panel, _Id}, {button, Text})           -> new_button(H, Text)
 build_control(H = {panel, _Id}, {label, Text})            -> new_label(H, Text);
 build_control(H = {panel, _Id}, {listbox})                -> new_listbox(H);
 build_control(H = {panel, _Id}, {listbox, Items})         -> new_listbox(H, Items);
-build_control(H = {panel, _Id}, {textbox})                -> new_textbox(H, "");
 build_control(H = {panel, _Id}, {combobox})               -> new_combobox(H);
 build_control(H = {panel, _Id}, {combobox, Items})        -> new_combobox(H, Items);
+build_control(H = {panel, _Id}, {textbox})                -> new_textbox(H, "");
 build_control(H = {panel, _Id}, {textbox, Text})          -> new_textbox(H, Text);
-build_control(H = {panel, _Id}, {textbox, Text, Options}) -> new_textbox(H, Text, Options).
+build_control(H = {panel, _Id}, {textbox, Text, Options}) -> new_textbox(H, Text, Options);
+build_control(H = {panel, _Id}, {password})                -> new_password(H, "");
+build_control(H = {panel, _Id}, {password, Text})          -> new_password(H, Text);
+build_control(H = {panel, _Id}, {password, Text, Options}) -> new_password(H, Text, Options).
 
 % Textbox constructors
 %------------------------------------------------------------------
@@ -209,23 +217,38 @@ new_textbox({panel, PanelId}, Text, Options) ->
     Options2 = to_wx_style([{value, Text}|Options]),
     wx_object:call(?SERVER, {new_textbox, PanelId, Options2}).
 
-% Text manipulation functions for: Labels, Textboxes.
+% Text manipulation functions for: Labels, Textboxes, Passwords.
 %------------------------------------------------------------------
 -spec append_text(textbox_handle() | label_handle(), string()) -> ok.
-append_text({Type, Id}, Text) when Type == textbox; Type == label -> 
+append_text({Type, Id}, Text) when Type == textbox; Type == label; Type == password -> 
     wx_object:call(?SERVER, {append_text, Id, Text}).
 
 -spec get_text(textbox_handle() | label_handle()) -> string().
-get_text({Type, Id}) when Type == textbox; Type == label -> 
+get_text({Type, Id}) when Type == textbox; Type == label; Type == password -> 
     wx_object:call(?SERVER, {get_text, Id}).
 
 -spec set_text(textbox_handle() | label_handle(), string()) -> ok.
-set_text({Type, Id}, Text) when Type == textbox; Type == label ->
+set_text({Type, Id}, Text) when Type == textbox; Type == label; Type == password ->
     wx_object:call(?SERVER, {set_text, Id, Text}).
 
 -spec clear(textbox_handle() | label_handle()) -> ok.
-clear({Type, Id}) when Type == textbox; Type == label ->
+clear({Type, Id}) when Type == textbox; Type == label; Type == password ->
     wx_object:call(?SERVER, {clear, Id}).
+
+% Password constructors
+%------------------------------------------------------------------
+-spec new_password(panel_handle()) -> password_handle().
+new_password(PanelHandle) -> new_password(PanelHandle, "", [password]).
+
+-spec new_password(panel_handle(), string()) -> password_handle().
+new_password(PanelHandle, Text) -> new_password(PanelHandle, Text, [password]).
+
+%TODO: validators! http://www.erlang.org/doc/man/wxTextCtrl.html#new-3
+-spec new_password(panel_handle(), string(), textbox_options()) -> password_handle().
+new_password({panel, PanelId}, Text, Options) ->
+    Options2 = to_wx_style([password|[{value, Text}|Options]]),
+    {textbox, Id} = wx_object:call(?SERVER, {new_textbox, PanelId, Options2}),
+    {password, Id}.
 
 % Listbox constructors
 %------------------------------------------------------------------
@@ -270,6 +293,7 @@ to_wx_style(align_left)     -> ?wxTE_LEFT;
 to_wx_style(align_center)   -> ?wxTE_CENTER;
 to_wx_style(align_right)    -> ?wxTE_RIGHT;
 to_wx_style(multiline)      -> ?wxTE_MULTILINE;
+to_wx_style(password)       -> ?wxTE_PASSWORD;
 to_wx_style(Unknown)        -> Unknown.
 
 extract_style_codes(Items) -> extract_style_codes(Items, 0, []).
@@ -305,8 +329,11 @@ extract_flag_codes([H|T], FlagCode, Tuples) ->
 % Experimental data binding.
 %------------------------------------------------------------------
 bind_values_to_controls([], []) -> ok;
-bind_values_to_controls([{textbox, Id}|OtherControls], [Text|OtherValues]) ->
-    ok = w:set_text({textbox, Id}, Text),
+bind_values_to_controls([H = {textbox, _Id}|OtherControls], [Text|OtherValues]) ->
+    ok = w:set_text(H, Text),
+    bind_values_to_controls(OtherControls, OtherValues);
+bind_values_to_controls([H = {password, _Id}|OtherControls], [Text|OtherValues]) ->
+    ok = w:set_text(H, Text),
     bind_values_to_controls(OtherControls, OtherValues);
 bind_values_to_controls([H = {listbox, _Id}|OtherControls], [Text|OtherValues]) ->
     ok = w:set_selection(H, Text),
@@ -320,6 +347,9 @@ unbind_values_from_controls(Controls) when is_list(Controls) ->
 
 unbind_values_from_controls([], Values) -> lists:reverse(Values);
 unbind_values_from_controls([H = {textbox, _Id}|Controls], Values) ->
+    Value = w:get_text(H),
+    unbind_values_from_controls(Controls, [Value | Values]);
+unbind_values_from_controls([H = {password, _Id}|Controls], Values) ->
     Value = w:get_text(H),
     unbind_values_from_controls(Controls, [Value | Values]);
 unbind_values_from_controls([H = {listbox, _Id}|Controls], Values) ->
