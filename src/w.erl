@@ -2,9 +2,15 @@
 
 -compile([export_all]).
 
+-include_lib("wx/include/wx.hrl").
+
 -define(SERVER, w_server).
 
--include_lib("wx/include/wx.hrl").
+% Guard helpers:
+-define(is_settable_text(Type), (Type == textbox orelse Type == label orelse Type == password)).
+-define(is_appendable(Type), (Type == box_sizer orelse Type == grid_sizer orelse Type == flexgrid_sizer orelse 
+                              Type == textbox orelse Type == label orelse Type == listbox orelse Type == password)).
+-define(is_fillable_sizer(Type), (Type == grid_sizer orelse Type == flexgrid_sizer)).
 
 % API for building wx GUIs.
 %------------------------------------------------------------------
@@ -132,16 +138,12 @@ set_min_size({box_sizer, SizerId}, Width, Height) -> wx_object:call(?SERVER, {se
 % TODO: appending spacers and children should work more like filling the grid sizer. See form2 example where the buttons are added.
 append_child({box_sizer, ParentId}, {button, ChildId, _Text}) -> 
     append_child(ParentId, ChildId, []);
-append_child({box_sizer, ParentId}, {Type, ChildId}) 
-    when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox; Type == label; 
-         Type == listbox; Type == password -> 
+append_child({box_sizer, ParentId}, {Type, ChildId}) when ?is_appendable(Type) -> 
     append_child(ParentId, ChildId, []).
 
 append_child({box_sizer, ParentId}, {button, ChildId, _Text}, Options) -> 
     append_child(ParentId, ChildId, Options);
-append_child({box_sizer, ParentId}, {Type, ChildId}, Options) 
-    when Type == box_sizer; Type == grid_sizer; Type == flexgrid_sizer; Type == textbox; Type == label; 
-         Type == listbox; Type == password -> 
+append_child({box_sizer, ParentId}, {Type, ChildId}, Options) when ?is_appendable(Type) -> 
     append_child(ParentId, ChildId, Options);
 append_child(ParentId, ChildId, Flags) when is_integer(ParentId), is_integer(ChildId) -> 
     Flags2 = to_wx_flag(Flags),
@@ -176,7 +178,7 @@ expand_col({flexgrid_sizer, Id}, Index, Proportion) -> wx_object:call(?SERVER, {
 % Population of Grid Sizer and FlexGrid Sizer:
 %------------------------------------------------------------------
 -spec fill_grid_sizer(grid_sizer_handle() | flexgrid_sizer_handle(), control_list_def()) -> ok.
-fill_grid_sizer({Type, Id}, Controls) when Type == grid_sizer; Type == flexgrid_sizer -> wx_object:call(?SERVER, {fill_grid_sizer, Id, Controls}).
+fill_grid_sizer({Type, Id}, Controls) when ?is_fillable_sizer(Type) -> wx_object:call(?SERVER, {fill_grid_sizer, Id, Controls}).
 % TODO: how to pass expand option?
 
 
@@ -220,19 +222,19 @@ new_textbox({panel, PanelId}, Text, Options) ->
 % Text manipulation functions for: Labels, Textboxes, Passwords.
 %------------------------------------------------------------------
 -spec append_text(textbox_handle() | label_handle(), string()) -> ok.
-append_text({Type, Id}, Text) when Type == textbox; Type == label; Type == password -> 
+append_text({Type, Id}, Text) when ?is_settable_text(Type) -> 
     wx_object:call(?SERVER, {append_text, Id, Text}).
 
 -spec get_text(textbox_handle() | label_handle()) -> string().
-get_text({Type, Id}) when Type == textbox; Type == label; Type == password -> 
+get_text({Type, Id}) when ?is_settable_text(Type) -> 
     wx_object:call(?SERVER, {get_text, Id}).
 
 -spec set_text(textbox_handle() | label_handle(), string()) -> ok.
-set_text({Type, Id}, Text) when Type == textbox; Type == label; Type == password ->
+set_text({Type, Id}, Text) when ?is_settable_text(Type) ->
     wx_object:call(?SERVER, {set_text, Id, Text}).
 
 -spec clear(textbox_handle() | label_handle()) -> ok.
-clear({Type, Id}) when Type == textbox; Type == label; Type == password ->
+clear({Type, Id}) when ?is_settable_text(Type) ->
     wx_object:call(?SERVER, {clear, Id}).
 
 % Password constructors
