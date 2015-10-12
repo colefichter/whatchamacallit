@@ -84,6 +84,9 @@ handle_call({new_frame, Title, Options}, From, State) ->
 handle_call({show, {frame, FrameId}}, _From, State) ->
     load_control_and_run(FrameId, wxWindow, show),
     {reply, ok, State};
+handle_call({hide, {frame, FrameId}}, _From, State) ->
+    load_control_and_run(FrameId, wxWindow, hide),
+    {reply, ok, State};
 
 % Panel
 %------------------------------------------------------------------
@@ -233,14 +236,25 @@ handle_call({select_listbox_selection, Id, Text}, _From, State) ->
     load_control_and_run(Id, wxControlWithItems, setStringSelection, [Text]),
     {reply, ok, State};
 
-% Listbox constructors
+% Combobox constructors
 %------------------------------------------------------------------
 handle_call({new_combobox, PanelId, Items}, From, State) ->
     Id = next_id(),
     % TODO: deal with options
     WxListbox = load_control_and_run(PanelId, wxComboBox, new, [Id, [{choices, Items}]]), % TODO: size needs to be an option!
-    set_control(to_record(From, Id, listbox, WxListbox)),
-    {reply, {listbox, Id}, State};
+    set_control(to_record(From, Id, combobox, WxListbox)),
+    {reply, {combobox, Id}, State};
+
+
+% Dropdownlist constructors
+%------------------------------------------------------------------
+handle_call({new_dropdownlist, PanelId, Items}, From, State) ->
+    Id = next_id(),
+    % TODO: deal with options
+    WxListbox = load_control_and_run(PanelId, wxChoice, new, [Id, [{choices, Items}]]), % TODO: size needs to be an option!
+    set_control(to_record(From, Id, dropdownlist, WxListbox)),
+    {reply, {dropdownlist, Id}, State};
+
 
 % Unused wx_object callbacks
 %------------------------------------------------------------------

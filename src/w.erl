@@ -9,8 +9,10 @@
 % Guard helpers:
 -define(is_settable_text(Type), (Type == textbox orelse Type == label orelse Type == password)).
 -define(is_appendable(Type), (Type == box_sizer orelse Type == grid_sizer orelse Type == flexgrid_sizer orelse 
-                              Type == textbox orelse Type == label orelse Type == listbox orelse Type == password)).
+                              Type == textbox orelse Type == label orelse Type == listbox orelse Type == password orelse
+                              Type == combobox orelse Type == dropdownlist)).
 -define(is_fillable_sizer(Type), (Type == grid_sizer orelse Type == flexgrid_sizer)).
+-define(is_list_with_items(Type), (Type == listbox orelse Type == combobox orelse Type == dropdownlist)).
 
 % API for building wx GUIs.
 %------------------------------------------------------------------
@@ -24,6 +26,7 @@
 -type textbox_handle()          :: {textbox, integer()}.
 -type password_handle()         :: {password, integer()}.
 -type listbox_handle()          :: {listbox, integer()}.
+-type dropdownlist_handle()     :: {dropdownlist, integer()}.
 -type combobox_handle()         :: {combobox, integer()}.
 -type sizer_handle()            :: {box_sizer, integer()}.
 -type grid_sizer_handle()       :: {grid_sizer, integer()}.
@@ -33,7 +36,9 @@
                         | toolbar_button_handle()
                         | label_handle()
                         | textbox_handle()
+                        | password_handle()
                         | listbox_handle()
+                        | dropdownlist_handle()
                         | combobox_handle().
 
 % Reusable types for common options:
@@ -66,13 +71,17 @@
 -type control_list_def() :: [control_def()].
 -type control_def() :: blank
                      | {button, string()}
-                     | {textbox, string()}
-                     | {textbox, string(), textbox_options()}
                      | {label, string()}
                      | {listbox}
                      | {listbox, [string()]}
                      | {combobox}
-                     | {combobox, [string()]}.
+                     | {combobox, [string()]}
+                     | {textbox}
+                     | {textbox, string()}
+                     | {textbox, string(), textbox_options()}
+                     | {password}
+                     | {password, string()}
+                     | {password, string(), textbox_options()}.
 
 % Frame
 %------------------------------------------------------------------
@@ -83,6 +92,9 @@ new_frame(Title, Options) -> wx_object:call(?SERVER, {new_frame, Title, Options}
 
 -spec show(frame_handle()) -> ok.
 show({frame, FrameId}) -> wx_object:call(?SERVER, {show, {frame, FrameId}}).
+
+-spec hide(frame_handle()) -> ok.
+hide(H = {frame, _Id}) -> wx_object:call(?SERVER, {hide, H}).
 
 % Panel
 %------------------------------------------------------------------
@@ -135,7 +147,7 @@ new_row_sizer() -> wx_object:call(?SERVER, {new_box_sizer, ?wxHORIZONTAL}).
 -spec set_min_size(sizer_handle(), integer(), integer()) -> ok.
 set_min_size({box_sizer, SizerId}, Width, Height) -> wx_object:call(?SERVER, {set_min_size, SizerId, Width, Height}).
 
-% TODO: appending spacers and children should work more like filling the grid sizer. See form2 example where the buttons are added.
+% TODO: appending spacers and children should work more like filling the grid sizer. See form.erl example where the buttons are added.
 append_child({box_sizer, ParentId}, {button, ChildId, _Text}) -> 
     append_child(ParentId, ChildId, []);
 append_child({box_sizer, ParentId}, {Type, ChildId}) when ?is_appendable(Type) -> 
@@ -198,6 +210,8 @@ build_control(H = {panel, _Id}, {listbox})                -> new_listbox(H);
 build_control(H = {panel, _Id}, {listbox, Items})         -> new_listbox(H, Items);
 build_control(H = {panel, _Id}, {combobox})               -> new_combobox(H);
 build_control(H = {panel, _Id}, {combobox, Items})        -> new_combobox(H, Items);
+build_control(H = {panel, _Id}, {dropdownlist})           -> new_dropdownlist(H);
+build_control(H = {panel, _Id}, {dropdownlist, Items})    -> new_dropdownlist(H, Items);
 build_control(H = {panel, _Id}, {textbox})                -> new_textbox(H, "");
 build_control(H = {panel, _Id}, {textbox, Text})          -> new_textbox(H, Text);
 build_control(H = {panel, _Id}, {textbox, Text, Options}) -> new_textbox(H, Text, Options);
@@ -269,9 +283,11 @@ new_listbox({panel, PanelId}, Items) -> wx_object:call(?SERVER, {new_listbox, Pa
 %------------------------------------------------------------------
 fill_listbox({listbox, Id}, Items) -> wx_object:call(?SERVER, {fill_listbox, Id, Items}).
 
-get_selection({listbox, Id}) -> wx_object:call(?SERVER, {get_listbox_selection, Id}).
+get_selection({Type, Id}) when ?is_list_with_items(Type) -> wx_object:call(?SERVER, {get_listbox_selection, Id}).
 
-set_selection({listbox, Id}, Text) -> wx_object:call(?SERVER, {select_listbox_selection, Id, Text}).
+set_selection({Type, Id}, Text) when ?is_list_with_items(Type) -> wx_object:call(?SERVER, {select_listbox_selection, Id, Text}).
+
+% TODO: set_selection for combobox and dropdownlists!
 
 
 % Combobox constructors
@@ -279,6 +295,14 @@ set_selection({listbox, Id}, Text) -> wx_object:call(?SERVER, {select_listbox_se
 new_combobox(H = {panel, _PanelId}) -> new_combobox(H, []).
 
 new_combobox({panel, PanelId}, Items) -> wx_object:call(?SERVER, {new_combobox, PanelId, Items}).
+
+
+% Dropdownlist constructors
+%------------------------------------------------------------------
+new_dropdownlist(H = {panel, _PanelId}) -> new_dropdownlist(H, []).
+
+new_dropdownlist({panel, PanelId}, Items) -> wx_object:call(?SERVER, {new_dropdownlist, PanelId, Items}).
+
 
 % Helpful utils to make WX easier to work with
 %------------------------------------------------------------------
@@ -337,7 +361,7 @@ bind_values_to_controls([H = {textbox, _Id}|OtherControls], [Text|OtherValues]) 
 bind_values_to_controls([H = {password, _Id}|OtherControls], [Text|OtherValues]) ->
     ok = w:set_text(H, Text),
     bind_values_to_controls(OtherControls, OtherValues);
-bind_values_to_controls([H = {listbox, _Id}|OtherControls], [Text|OtherValues]) ->
+bind_values_to_controls([H = {Type, _Id}|OtherControls], [Text|OtherValues]) when ?is_list_with_items(Type) ->
     ok = w:set_selection(H, Text),
     bind_values_to_controls(OtherControls, OtherValues);
 %Ignore other types of controls. This way, we can bind to a mixed list without binding to, for example, labels.
@@ -354,7 +378,7 @@ unbind_values_from_controls([H = {textbox, _Id}|Controls], Values) ->
 unbind_values_from_controls([H = {password, _Id}|Controls], Values) ->
     Value = w:get_text(H),
     unbind_values_from_controls(Controls, [Value | Values]);
-unbind_values_from_controls([H = {listbox, _Id}|Controls], Values) ->
+unbind_values_from_controls([H = {Type, _Id}|Controls], Values) when ?is_list_with_items(Type) ->
     Value = w:get_selection(H),
     unbind_values_from_controls(Controls, [Value | Values]);
 unbind_values_from_controls([_AnythingElse|Controls], Values) ->

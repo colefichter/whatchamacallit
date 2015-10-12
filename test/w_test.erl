@@ -64,10 +64,12 @@ simple_window_test() ->
         {button, _B3Id, "Copy"}
     ] = w:add_toolbar(Frame, ToolbarButtonDef),
     ok = w:show(Frame),
+    timer:sleep(50),
+    ok = w:hide(Frame),
     ok = w_server:stop().
 
 textbox_test() ->
-    w_server:start(), %Do this in a supervision tree instead!
+    w_server:start(),
     Frame = w:new_frame("Textbox tests!"),
     Panel = w:new_panel(Frame),
     Textbox1 = w:new_textbox(Panel),
@@ -89,13 +91,37 @@ textbox_test() ->
     ok = w_server:stop().
 
 listbox_test() ->
-    w_server:start(), %Do this in a supervision tree instead!
+    w_server:start(),
     Genres = ["Comedy", "Drama", "Epic", "Erotic", "Nonsense"],
     Frame = w:new_frame("Listbox tests!"),
     Panel = w:new_panel(Frame),
-    Listbox = w:new_listbox(Panel),
-    w:bind_values_to_controls([Listbox], [Genres]),
+    Listbox = {listbox, _Id} = w:new_listbox(Panel, Genres),
+    w:bind_values_to_controls([Listbox], ["Epic"]),    
+    ?assertEqual("Epic", w:get_selection(Listbox)),
+    ?assertEqual(["Epic"], w:unbind_values_from_controls([Listbox])),
     ok = w_server:stop().
+
+combobox_test() ->
+    w_server:start(),
+    Genres = ["Comedy", "Drama", "Epic", "Erotic", "Nonsense"],
+    Frame = w:new_frame("Listbox tests!"),
+    Panel = w:new_panel(Frame),
+    Combobox = {combobox, _Id} = w:new_combobox(Panel, Genres),
+    w:bind_values_to_controls([Combobox], ["Epic"]),    
+    ?assertEqual("Epic", w:get_selection(Combobox)),
+    ?assertEqual(["Epic"], w:unbind_values_from_controls([Combobox])),
+    ok = w_server:stop().
+
+dropdownlist_test() ->
+    w_server:start(),
+    Genres = ["Comedy", "Drama", "Epic", "Erotic", "Nonsense"],
+    Frame = w:new_frame("Listbox tests!"),
+    Panel = w:new_panel(Frame),
+    DDL = {dropdownlist, _Id} = w:new_dropdownlist(Panel, Genres),
+    w:bind_values_to_controls([DDL], ["Epic"]),    
+    ?assertEqual("Epic", w:get_selection(DDL)),
+    ?assertEqual(["Epic"], w:unbind_values_from_controls([DDL])),
+    ok = w_server:stop().   
 
 label_test() ->
     w_server:start(),
@@ -131,6 +157,3 @@ databind_unbind_test() ->
     ?assertEqual("Multiline\nTextbox 2", Tb2),
     ?assertEqual("Epic", Lb1),
     ok = w_server:stop().
-
-
-% TODO: WRITE LOTS AND LOTS OF UNIT TESTS!
